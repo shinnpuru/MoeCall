@@ -16,6 +16,7 @@ interface UseGeminiLiveProps {
 export const useGeminiLive = ({ apiKey, characterName, scenario, personality, isActive, audioDeviceId, onSpeakingChanged }: UseGeminiLiveProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Refs for audio context and processing
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -53,6 +54,12 @@ export const useGeminiLive = ({ apiKey, characterName, scenario, personality, is
     }
     
     setIsConnected(false);
+  }, []);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setIsConnected(false);
+    setRetryCount(prev => prev + 1);
   }, []);
 
   useEffect(() => {
@@ -192,7 +199,7 @@ export const useGeminiLive = ({ apiKey, characterName, scenario, personality, is
     initSession();
 
     return cleanup;
-  }, [isActive, scenario, personality, characterName, apiKey, cleanup, onSpeakingChanged, audioDeviceId]);
+  }, [isActive, scenario, personality, characterName, apiKey, cleanup, onSpeakingChanged, audioDeviceId, retryCount]);
 
-  return { isConnected, error, analyser: analyserRef.current };
+  return { isConnected, error, analyser: analyserRef.current, retry };
 };

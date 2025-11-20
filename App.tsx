@@ -4,9 +4,9 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { 
-  Mic, MicOff, PhoneOff, Video, Upload, Image as ImageIcon, 
+  Mic, MicOff, PhoneOff, Video, VideoOff, Upload, Image as ImageIcon, 
   Loader2, Sparkles, Briefcase, Coffee, Rocket, Heart, User, Check,
-  Camera, ArrowRight, Settings, X, Sun, Speaker, Monitor, Smile, Zap, Skull, UserMinus, UserCheck, MessageCircle, Key
+  Camera, ArrowRight, Settings, X, Sun, Speaker, Monitor, Smile, Zap, Skull, UserMinus, UserCheck, MessageCircle, Key, RefreshCw
 } from 'lucide-react';
 import { Avatar } from './components/Avatar';
 import { useGeminiLive } from './hooks/useGeminiLive';
@@ -64,6 +64,7 @@ export default function App() {
   const [bgMode, setBgMode] = useState<'upload' | 'generate'>('upload');
   
   const [micOn, setMicOn] = useState(true);
+  const [videoOn, setVideoOn] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -83,7 +84,7 @@ export default function App() {
   const [expressionFactor, setExpressionFactor] = useState(0.6);
 
   // Gemini Live Hook
-  const { isConnected, error, analyser } = useGeminiLive({
+  const { isConnected, error, analyser, retry } = useGeminiLive({
     apiKey: state.apiKey,
     characterName: state.characterName,
     scenario: state.scenario,
@@ -150,7 +151,10 @@ export default function App() {
 
   // User Camera Setup
   useEffect(() => {
-    if (state.step === 'call' && videoRef.current) {
+    let active = true;
+    let localStream: MediaStream | null = null;
+
+    if (state.step === 'call' && videoOn) {
       const constraints = {
         video: selectedVideoDevice ? { deviceId: { exact: selectedVideoDevice } } : true,
         audio: false
@@ -158,11 +162,30 @@ export default function App() {
       
       navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
-          if (videoRef.current) videoRef.current.srcObject = stream;
+          if (!active) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+          localStream = stream;
+          if (videoRef.current) {
+             videoRef.current.srcObject = stream;
+          }
         })
         .catch(e => console.error("Camera access denied", e));
+    } else {
+        // Clear video element if video is off
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
     }
-  }, [state.step, selectedVideoDevice]);
+
+    return () => {
+      active = false;
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [state.step, selectedVideoDevice, videoOn]);
 
   const handleVrmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -605,13 +628,20 @@ export default function App() {
 
       {/* Self View (User) */}
       <div className="absolute top-4 right-4 w-32 h-48 md:w-48 md:h-72 bg-white rounded-2xl overflow-hidden border-4 border-gray-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.5)] z-20 transform rotate-[-2deg] transition-transform hover:rotate-0">
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          muted 
-          playsInline 
-          className="w-full h-full object-cover transform scale-x-[-1]" 
-        />
+        {videoOn ? (
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              muted 
+              playsInline 
+              className="w-full h-full object-cover transform scale-x-[-1]" 
+            />
+        ) : (
+            <div className="w-full h-full bg-gray-800 flex flex-col items-center justify-center text-white">
+                <VideoOff className="w-12 h-12 mb-2 opacity-50" />
+                <span className="text-xs font-bold">Camera Off</span>
+            </div>
+        )}
         <div className="absolute bottom-2 left-2 bg-pink-500/90 px-3 py-1 rounded-lg border-2 border-black text-xs font-bold text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">YOU</div>
       </div>
 
@@ -620,14 +650,29 @@ export default function App() {
         
         {/* Status Bubble */}
         <div className={`mb-8 px-6 py-3 rounded-full border-2 border-gray-900 text-base font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center space-x-3 ${
-            isConnected 
-            ? (isSpeaking ? 'bg-green-400 text-black animate-bounce' : 'bg-white text-black')
-            : 'bg-red-400 text-white'
+            error 
+            ? 'bg-red-400 text-white' 
+            : isConnected 
+              ? (isSpeaking ? 'bg-green-400 text-black animate-bounce' : 'bg-white text-black')
+              : 'bg-yellow-300 text-black'
         }`}>
-           <div className={`w-3 h-3 rounded-full border border-black ${isConnected ? (isSpeaking ? 'bg-green-200' : 'bg-green-500') : 'bg-red-200 animate-pulse'}`} />
-           <span>
-             {error ? error : !isConnected ? 'Connecting...' : isSpeaking ? 'Talking...' : 'Listening...'}
-           </span>
+           {!error && <div className={`w-3 h-3 rounded-full border border-black ${isConnected ? (isSpeaking ? 'bg-green-200' : 'bg-green-500') : 'bg-yellow-600 animate-pulse'}`} />}
+           
+           {error ? (
+               <div className="flex items-center">
+                   <span className="mr-3">Connection Failed</span>
+                   <button 
+                     onClick={retry}
+                     className="flex items-center bg-white text-red-600 px-3 py-1 rounded-lg border-2 border-black hover:bg-red-50 active:translate-y-0.5 transition-all text-sm shadow-sm"
+                   >
+                     <RefreshCw className="w-4 h-4 mr-1" /> Retry
+                   </button>
+               </div>
+           ) : (
+               <span>
+                 {!isConnected ? 'Connecting...' : isSpeaking ? 'Talking...' : 'Listening...'}
+               </span>
+           )}
         </div>
 
         {/* Control Bar */}
@@ -646,8 +691,11 @@ export default function App() {
             <PhoneOff className="w-8 h-8" />
           </button>
 
-          <button className="p-4 rounded-2xl bg-gray-100 text-gray-800 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-200 active:translate-y-1 active:shadow-none transition-all">
-             <Camera className="w-6 h-6" />
+          <button 
+            onClick={() => setVideoOn(!videoOn)}
+            className={`p-4 rounded-2xl border-2 border-gray-900 transition-all transform active:translate-y-1 active:shadow-none ${videoOn ? 'bg-gray-100 text-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-200' : 'bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-red-600'}`}
+          >
+            {videoOn ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
           </button>
         </div>
       </div>
