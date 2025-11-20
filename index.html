@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VRM Live Call</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Hand-drawn font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    
+    <style>
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #FFF5F7;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #F472B6;
+        border: 2px solid #1F2937;
+        border-radius: 4px;
+      }
+      body {
+        margin: 0;
+        /* Removed overflow: hidden to allow scrolling on setup page */
+        background-color: #FFF5F7; /* Pink-50 */
+        font-family: 'Patrick Hand', cursive, sans-serif;
+      }
+      .font-hand {
+        font-family: 'Patrick Hand', cursive, sans-serif;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "three/": "https://aistudiocdn.com/three@^0.181.2/",
+    "@pixiv/three-vrm": "https://aistudiocdn.com/@pixiv/three-vrm@^3.4.4",
+    "three": "https://aistudiocdn.com/three@^0.181.2",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "@react-three/drei": "https://aistudiocdn.com/@react-three/drei@^10.7.7",
+    "@react-three/fiber": "https://aistudiocdn.com/@react-three/fiber@^9.4.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

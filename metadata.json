@@ -1,0 +1,8 @@
+{
+  "name": "VRM Live Call",
+  "description": "A real-time video call application with a VRM avatar driven by Gemini Live API, featuring dynamic background generation and lip-sync.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
